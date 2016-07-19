@@ -16,22 +16,29 @@ MainWidget::MainWidget(QSettings &settings, QWidget *parent) : QWidget(parent), 
     this->m_hideOkButton = new QPushButton(QStringLiteral("Cacher OK"), this);
     this->m_layout = new QGridLayout(this);
     this->m_pathLine = new QLineEdit(this->m_set.value(QStringLiteral("history/dir")).toString(), this);
+    this->m_processButton = new QPushButton(QStringLiteral("Confirmer"), this);
     this->m_searchButton = new QPushButton(QStringLiteral("Sélectionner"), this);
     this->m_showOkButton = new QPushButton(QStringLiteral("Montrer OK"), this);
     this->m_startButton = new QPushButton(QStringLiteral("Démarrer"), this);
 
     this->setMinimumSize(640, 480);
 
-    this->m_layout->addWidget(this->m_pathLine, 0, 0);
-    this->m_layout->addWidget(this->m_searchButton, 0, 1);
-    this->m_layout->addWidget(this->m_startButton, 1, 0, 1, 2);
+    this->m_layout->addWidget(this->m_pathLine, 0, 0, 1, 2);
+    this->m_layout->addWidget(this->m_searchButton, 0, 2);
+    this->m_layout->addWidget(this->m_startButton, 1, 0, 1, -1);
     this->m_layout->addWidget(this->m_fsWidget, 2, 0, 1, -1);
     this->m_layout->addWidget(this->m_hideOkButton, 3, 0, 1, 1);
     this->m_layout->addWidget(this->m_showOkButton, 3, 1, 1, 1);
+    this->m_layout->addWidget(this->m_processButton, 3, 2, 1, 1);
 
     this->m_pathLine->setMinimumWidth(250);
     this->m_pathLine->setPlaceholderText(QStringLiteral("Chemin"));
     this->m_pathLine->setReadOnly(true);
+
+    this->m_hideOkButton->setDisabled(true);
+    this->m_processButton->setDisabled(true);
+    this->m_showOkButton->setDisabled(true);
+    this->m_startButton->setDisabled(this->m_pathLine->text().isEmpty());
 
     this->connect(this->m_hideOkButton, &QPushButton::clicked, this, &MainWidget::hideOk);
     this->connect(this->m_searchButton, &QPushButton::clicked, this, &MainWidget::setPath);
@@ -84,15 +91,16 @@ void    MainWidget::setPath(void)
     );
 
     if (!searchPath.isEmpty() && !QDir(searchPath).exists()) {
-            QMessageBox::warning(
-                        this,
-                        QStringLiteral(),
-                        QStringLiteral("Ce dossier n'existe pas")
-            );
+        QMessageBox::warning(
+            this,
+            QStringLiteral(),
+            QStringLiteral("Ce dossier n'existe pas")
+        );
+    } else {
+        this->m_set.setValue(QStringLiteral("history/dir"), searchPath);
     }
-
     this->m_pathLine->setText(searchPath);
-    this->m_set.setValue(QStringLiteral("history/dir"), searchPath);
+    this->m_startButton->setDisabled(searchPath.isEmpty());
 }
 
 void    MainWidget::startCrawling(void)
@@ -105,6 +113,9 @@ void    MainWidget::startCrawling(void)
 
     this->dump(entries);
     this->m_fsWidget->item(0)->setFlags(Qt::NoItemFlags);
+    this->m_hideOkButton->setEnabled(true);
+    this->m_showOkButton->setEnabled(true);
+    this->m_processButton->setEnabled(true);
 }
 
 DirStruct   *MainWidget::crawl(const QFileInfo &info, bool isRoot)
@@ -154,4 +165,9 @@ void    MainWidget::showOk(void)
             item->setHidden(false);
         }
     }
+}
+
+void    MainWidget::process(void)
+{
+
 }

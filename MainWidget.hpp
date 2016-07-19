@@ -28,6 +28,7 @@ class MainWidget : public QWidget
         QLineEdit   *m_pathLine;
         QListWidget *m_fsWidget;
         QPushButton *m_hideOkButton;
+        QPushButton *m_processButton;
         QPushButton *m_searchButton;
         QPushButton *m_showOkButton;
         QPushButton *m_startButton;
@@ -43,6 +44,7 @@ class MainWidget : public QWidget
         DirStruct   *crawl(const QFileInfo &info, bool isRoot = false);
         void        hideOk(void);
         void        showOk(void);
+        void        process(void);
 };
 
 #endif // MAINWINDOW_HPP
