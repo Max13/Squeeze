@@ -4,34 +4,38 @@
 #include <QFileDialog>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QMimeData>
 #include <QString>
 #include <QStringList>
 
 #include "MainWidget.hpp"
 
-MainWidget::MainWidget(QWidget *parent) : QWidget(parent)
+MainWidget::MainWidget(QSettings &settings, QWidget *parent) : QWidget(parent), m_set(settings)
 {
     this->m_fsWidget = new QListWidget(this);
-    this->m_layout = new QVBoxLayout(this);
-    this->m_pathLine = new QLineEdit(this);
-    this->m_searchLayout = new QGridLayout;
+    this->m_hideOkButton = new QPushButton(QStringLiteral("Cacher OK"), this);
+    this->m_layout = new QGridLayout(this);
+    this->m_pathLine = new QLineEdit(this->m_set.value(QStringLiteral("history/dir")).toString(), this);
     this->m_searchButton = new QPushButton(QStringLiteral("Sélectionner"), this);
+    this->m_showOkButton = new QPushButton(QStringLiteral("Montrer OK"), this);
     this->m_startButton = new QPushButton(QStringLiteral("Démarrer"), this);
 
     this->setMinimumSize(640, 480);
 
-    this->m_layout->addLayout(this->m_searchLayout);
-    this->m_layout->addWidget(this->m_fsWidget);
+    this->m_layout->addWidget(this->m_pathLine, 0, 0);
+    this->m_layout->addWidget(this->m_searchButton, 0, 1);
+    this->m_layout->addWidget(this->m_startButton, 1, 0, 1, 2);
+    this->m_layout->addWidget(this->m_fsWidget, 2, 0, 1, -1);
+    this->m_layout->addWidget(this->m_hideOkButton, 3, 0, 1, 1);
+    this->m_layout->addWidget(this->m_showOkButton, 3, 1, 1, 1);
 
     this->m_pathLine->setMinimumWidth(250);
     this->m_pathLine->setPlaceholderText(QStringLiteral("Chemin"));
     this->m_pathLine->setReadOnly(true);
 
-    this->m_searchLayout->addWidget(this->m_pathLine, 0, 0);
-    this->m_searchLayout->addWidget(this->m_searchButton, 0, 1);
-    this->m_searchLayout->addWidget(this->m_startButton, 1, 0, 1, 2);
-
+    this->connect(this->m_hideOkButton, &QPushButton::clicked, this, &MainWidget::hideOk);
     this->connect(this->m_searchButton, &QPushButton::clicked, this, &MainWidget::setPath);
+    this->connect(this->m_showOkButton, &QPushButton::clicked, this, &MainWidget::showOk);
     this->connect(this->m_startButton, &QPushButton::clicked, this, &MainWidget::startCrawling);
 }
 
@@ -45,9 +49,7 @@ void MainWidget::dump(const DirStruct *current, int depth, bool last)
         return;
     }
 
-    if (depth == 0) {
-
-    } else if (depth == 1) {
+    if (depth == 1) {
         output.append(last ? "└" : "├").append("── ");
     } else if (depth > 1) {
         output.append("│").append(QString((depth - 1) * 3, ' ')).append(last ? "└" : "├").append("── ");
@@ -56,8 +58,10 @@ void MainWidget::dump(const DirStruct *current, int depth, bool last)
 
     qDebug().noquote() << output;
     this->m_fsWidget->addItem(output);
-    if (output.length() > 250) {
+    if (output.length() > MAX_LENGTH) {
         this->m_fsWidget->item(this->m_fsWidget->count() - 1)->setTextColor(QColor(Qt::red));
+    } else if (depth) {
+        this->m_fsWidget->item(this->m_fsWidget->count() - 1)->setHidden(true);
     }
 
     if (!current->entries.isEmpty()) {
@@ -88,6 +92,7 @@ void    MainWidget::setPath(void)
     }
 
     this->m_pathLine->setText(searchPath);
+    this->m_set.setValue(QStringLiteral("history/dir"), searchPath);
 }
 
 void    MainWidget::startCrawling(void)
@@ -127,4 +132,26 @@ DirStruct   *MainWidget::crawl(const QFileInfo &info, bool isRoot)
     }
 
     return entry;
+}
+
+void    MainWidget::hideOk(void)
+{
+    for (int i=1,z=this->m_fsWidget->count(); i<z; i++) {
+        QListWidgetItem *item = this->m_fsWidget->item(i);
+
+        if (item->text().length() <= MAX_LENGTH && !item->isHidden()) {
+            item->setHidden(true);
+        }
+    }
+}
+
+void    MainWidget::showOk(void)
+{
+    for (int i=1,z=this->m_fsWidget->count(); i<z; i++) {
+        QListWidgetItem *item = this->m_fsWidget->item(i);
+
+        if (item->text().length() <= MAX_LENGTH && item->isHidden()) {
+            item->setHidden(false);
+        }
+    }
 }
