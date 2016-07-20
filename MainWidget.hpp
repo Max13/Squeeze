@@ -1,7 +1,7 @@
 #ifndef MAINWINDOW_HPP
 #define MAINWINDOW_HPP
 
-#define MAX_LENGTH  100
+//#define MAX_LENGTH  100
 
 #include <QDir>
 #include <QFileInfo>
@@ -18,11 +18,6 @@
 
 class MainWidget : public QWidget
 {
-    enum    fsRole {
-        FULLPATH    = Qt::UserRole,
-        VISIBILITY  = FULLPATH + 1,
-    };
-
     Q_OBJECT
     private:
         QGridLayout *m_layout;
@@ -38,12 +33,18 @@ class MainWidget : public QWidget
         QSettings   &m_set;
 
     public:
+        enum    fsRole {
+            FULLPATH    = Qt::UserRole,
+            VISIBILITY  = FULLPATH + 1,
+        };
+
         MainWidget(QSettings &settings, QWidget *parent = 0);
 
     public slots:
         void        setPath(void);
         void        startCrawling(void);
-        void        crawl(const QFileInfo &info, quint16 depth = 0, bool last = false);
+        void        endCrawling(void);
+//        void        crawl(const QFileInfo &info, quint16 depth = 0, bool last = false);
         void        hideOk(void);
         void        showOk(void);
         void        process(void);

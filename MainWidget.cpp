@@ -1,4 +1,5 @@
 #include <QColor>
+#include <QtConcurrent>
 #include <QDebug>
 #include <QDir>
 #include <QFileDialog>
@@ -8,6 +9,7 @@
 #include <QString>
 #include <QStringList>
 
+#include "Crawler.hpp"
 #include "MainWidget.hpp"
 
 MainWidget::MainWidget(QSettings &settings, QWidget *parent) : QWidget(parent), m_set(settings)
@@ -23,6 +25,8 @@ MainWidget::MainWidget(QSettings &settings, QWidget *parent) : QWidget(parent), 
     this->m_startButton = new QPushButton(QStringLiteral("Démarrer"), this);
 
     this->setMinimumSize(640, 480);
+
+    this->connect(this->m_fsWidget, &QListWidget::itemDoubleClicked, [=] (QListWidgetItem *item) {qDebug() << item->text(); });
 
     this->m_layout->addWidget(this->m_pathLine, 0, 0, 1, 2);
     this->m_layout->addWidget(this->m_searchButton, 0, 2);
@@ -76,60 +80,71 @@ void    MainWidget::setPath(void)
 
 void    MainWidget::startCrawling(void)
 {
+    Crawler *crawler = new Crawler(this->m_fsWidget, this->m_okItems, this);
+
     this->m_fsWidget->clear();
+    this->m_fsWidget->setDisabled(true);
     this->m_okItems.clear();
     this->m_startButton->setHidden(true);
     this->m_loader->setHidden(false);
 
-    this->crawl(QFileInfo(this->m_pathLine->text()));
+    this->connect(crawler, &Crawler::crawlFinished, this, &MainWidget::endCrawling);
+    this->connect(crawler, &Crawler::crawlFinished, crawler, &Crawler::deleteLater);
 
+    QFuture<void> futureCrawl = QtConcurrent::run(crawler, &Crawler::crawl, QFileInfo(this->m_pathLine->text()), 0, false);
+}
+
+void    MainWidget::endCrawling(void)
+{
     this->m_loader->setHidden(true);
     this->m_startButton->setHidden(false);
+    this->m_fsWidget->setEnabled(true);
 
     this->m_hideOkButton->setEnabled(true);
     this->m_showOkButton->setEnabled(true);
     this->m_processButton->setEnabled(true);
 }
 
-void    MainWidget::crawl(const QFileInfo &info, quint16 depth, bool last)
-{
-    bool            isOk(info.fileName().length() <= MAX_LENGTH);
-    QFileInfoList   entriesList;
-    QListWidgetItem *rootItem = new QListWidgetItem(this->m_fsWidget);
-    QString         text;
+//void    MainWidget::crawl(const QFileInfo &info, quint16 depth, bool last)
+//{
+//    bool            isOk(info.fileName().length() <= MAX_LENGTH);
+//    QFileInfoList   entriesList;
+//    QListWidgetItem *rootItem = new QListWidgetItem(this->m_fsWidget);
+//    QString         text;
 
-    if (depth == 0) {
-        text = info.canonicalFilePath();
-        rootItem->setFlags(Qt::NoItemFlags);
-    } else if (depth == 1) {
-        text.append(last ? "└" : "├").append("── ").append(info.fileName());
-    } else if (depth > 1) {
-        text.append("│").append(QString(depth * 3 + 1, ' ')).append(last ? "└" : "├").append("── ").append(info.fileName());
-    }
+//    if (depth == 0) {
+//        text = info.canonicalFilePath();
+//        rootItem->setFlags(Qt::NoItemFlags);
+//    } else if (depth == 1) {
+//        text.append(last ? "└" : "├").append("── ").append(info.fileName());
+//    } else if (depth > 1) {
+//        text.append("│").append(QString((depth - 1) * 3, ' ')).append(last ? "└" : "├").append("── ").append(info.fileName());
+//    }
 
-    rootItem->setData(MainWidget::FULLPATH, info.canonicalFilePath());
-    rootItem->setData(MainWidget::VISIBILITY, isOk);
-    rootItem->setText(text);
-    if (depth != 0) {
-        if (isOk) {
-            rootItem->setHidden(isOk);
-            this->m_okItems.append(rootItem);
-        } else {
-            rootItem->setTextColor(Qt::red);
-        }
-    }
+//    rootItem->setData(MainWidget::FULLPATH, info.canonicalFilePath());
+//    rootItem->setData(MainWidget::VISIBILITY, isOk);
+//    rootItem->setFont(rootItem->font());
+//    rootItem->setText(text);
+//    if (depth != 0) {
+//        if (isOk) {
+//            rootItem->setHidden(true);
+//            this->m_okItems.append(rootItem);
+//        } else {
+//            rootItem->setTextColor(Qt::red);
+//        }
+//    }
 
-    if (info.isDir()) {
-        entriesList = QDir(info.canonicalFilePath()).entryInfoList(
-            QDir::AllEntries | QDir::NoDotAndDotDot,
-            QDir::Name
-        );
+//    if (info.isDir()) {
+//        entriesList = QDir(info.canonicalFilePath()).entryInfoList(
+//            QDir::AllEntries | QDir::NoDotAndDotDot,
+//            QDir::Name
+//        );
 
-        for (QFileInfoList::ConstIterator i(entriesList.cbegin()); i != entriesList.cend(); ++i) {
-            this->crawl(*i, depth + 1, *i == entriesList.last());
-        }
-    }
-}
+//        for (QFileInfoList::ConstIterator i(entriesList.cbegin()); i != entriesList.cend(); ++i) {
+//            this->crawl(*i, depth + 1, *i == entriesList.last());
+//        }
+//    }
+//}
 
 void    MainWidget::hideOk(void)
 {
