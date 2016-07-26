@@ -12,6 +12,7 @@
 MainWidget::MainWidget(QSettings &settings, const quint8 &maxLength, QWidget *parent)
     : QWidget(parent), m_maxLength(maxLength), m_set(settings)
 {
+    this->m_currentEntry = new QLabel(this);
     this->m_fsWidget = new QListWidget(this);
     this->m_layout = new QGridLayout(this);
     this->m_loader = new QProgressBar(this);
@@ -22,12 +23,15 @@ MainWidget::MainWidget(QSettings &settings, const quint8 &maxLength, QWidget *pa
 
     this->setMinimumSize(640, 480);
 
+    this->m_currentEntry->setHidden(true);
+
     this->m_layout->addWidget(this->m_pathLine, 0, 0, 1, 2);
     this->m_layout->addWidget(this->m_searchButton, 0, 2);
     this->m_layout->addWidget(this->m_startButton, 1, 0, 1, -1);
     this->m_layout->addWidget(this->m_loader, 1, 0, 1, -1);
-    this->m_layout->addWidget(this->m_fsWidget, 2, 0, 1, -1);
-    this->m_layout->addWidget(this->m_processButton, 3, 0, 1, -1);
+    this->m_layout->addWidget(this->m_currentEntry, 2, 0, 1, -1);
+    this->m_layout->addWidget(this->m_fsWidget, 3, 0, 1, -1);
+    this->m_layout->addWidget(this->m_processButton, 4, 0, 1, -1);
 
     this->m_loader->setRange(0, 0);
     this->m_loader->setHidden(true);
@@ -72,11 +76,13 @@ void    MainWidget::startLoading(void)
 {
     this->m_startButton->setHidden(true);
     this->m_loader->setHidden(false);
+    this->m_currentEntry->setHidden(false);
     this->setDisabled(true);
 }
 
 void    MainWidget::endLoading(void)
 {
+    this->m_currentEntry->setHidden(true);
     this->m_loader->setHidden(true);
     this->m_startButton->setHidden(false);
 
@@ -97,6 +103,8 @@ void    MainWidget::crawl(const QFileInfo &info, quint16 depth)
 {
     bool            isOk(info.fileName().length() <= this->m_maxLength);
     QListWidgetItem *rootItem;
+
+    this->m_currentEntry->setText(info.canonicalFilePath());
 
     if (!isOk) {
         rootItem = new QListWidgetItem(info.fileName().left(60).append("..."), this->m_fsWidget);

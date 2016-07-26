@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QGridLayout>
+#include <QLabel>
 #include <QLineEdit>
 #include <QLinkedList>
 #include <QListWidget>
@@ -24,6 +25,7 @@ class MainWidget : public QWidget
         const quint8            &m_maxLength;
         LinkedItems             m_items;
         QGridLayout             *m_layout;
+        QLabel                  *m_currentEntry;
         QLineEdit               *m_pathLine;
         QListWidget             *m_fsWidget;
         QProgressBar            *m_loader;
