@@ -39,7 +39,7 @@ class MainWidget : public QWidget
             FULLPATH    = Qt::UserRole,
         };
 
-        MainWidget(QSettings &settings, const quint8 &maxLength = 250, QWidget *parent = 0);
+        MainWidget(QSettings &settings, const quint8 &maxLength = 255, QWidget *parent = 0);
 
     signals:
 
@@ -48,7 +48,7 @@ class MainWidget : public QWidget
         void    startLoading(void);
         void    endLoading(void);
         void    startCrawling(void);
-        void    crawl(const QFileInfo &info, quint16 depth = 0);
+        void    addFound(const QFileInfo &info);
         void    openPath(const QModelIndex &index);
         void    process(void);
 };

@@ -11,9 +11,11 @@ TEMPLATE    =  app
 
 
 SOURCES     += main.cpp \
-               MainWidget.cpp
+               MainWidget.cpp \
+               Crawler.cpp
 
-HEADERS     += MainWidget.hpp
+HEADERS     += MainWidget.hpp \
+               Crawler.hpp
 
 RESOURCES   += resources/resources.qrc
 

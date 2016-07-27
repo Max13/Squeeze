@@ -7,6 +7,7 @@
 #include <QString>
 #include <QtConcurrent>
 
+#include "Crawler.hpp"
 #include "MainWidget.hpp"
 
 MainWidget::MainWidget(QSettings &settings, const quint8 &maxLength, QWidget *parent)
@@ -24,6 +25,10 @@ MainWidget::MainWidget(QSettings &settings, const quint8 &maxLength, QWidget *pa
     this->setMinimumSize(640, 480);
 
     this->m_currentEntry->setHidden(true);
+
+    this->m_fsWidget->setAlternatingRowColors(true);
+    this->m_fsWidget->setTextElideMode(Qt::ElideMiddle);
+    this->m_fsWidget->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
     this->m_layout->addWidget(this->m_pathLine, 0, 0, 1, 2);
     this->m_layout->addWidget(this->m_searchButton, 0, 2);
@@ -47,6 +52,8 @@ MainWidget::MainWidget(QSettings &settings, const quint8 &maxLength, QWidget *pa
     this->connect(this->m_searchButton, &QPushButton::clicked, this, &MainWidget::setPath);
     this->connect(this->m_startButton, &QPushButton::clicked, this, &MainWidget::startCrawling);
     this->connect(this->m_processButton, &QPushButton::clicked, this, &MainWidget::process);
+
+    qRegisterMetaType<QFileInfo>("QFileInfo");
 }
 
 // SLOTS
@@ -96,41 +103,26 @@ void    MainWidget::startCrawling(void)
     this->m_items.clear();
 
     this->startLoading();
-    QtConcurrent::run(this, &MainWidget::crawl, QFileInfo(this->m_pathLine->text()), 0);
+
+    Crawler *crawler = new Crawler(*this->m_currentEntry, this->m_maxLength, this);
+    this->connect(crawler, &Crawler::fileFound, this, &MainWidget::addFound);
+    this->connect(crawler, &Crawler::finished, this, &MainWidget::endLoading);
+    this->connect(crawler, &Crawler::finished, crawler, &Crawler::deleteLater);
+    QtConcurrent::run(crawler, &Crawler::crawl, QFileInfo(this->m_pathLine->text()), true);
 }
 
-void    MainWidget::crawl(const QFileInfo &info, quint16 depth)
+void    MainWidget::addFound(const QFileInfo &info)
 {
-    bool            isOk(info.fileName().length() <= this->m_maxLength);
-    QListWidgetItem *rootItem;
+    QListWidgetItem *rootItem = new QListWidgetItem(info.fileName(), this->m_fsWidget);
 
-    this->m_currentEntry->setText(info.canonicalFilePath());
+    rootItem->setToolTip(info.canonicalFilePath());
 
-    if (!isOk) {
-        rootItem = new QListWidgetItem(info.fileName().left(60).append("..."), this->m_fsWidget);
-        rootItem->setToolTip(info.canonicalFilePath());
-        this->m_items.append(rootItem);
-    }
-
-    if (info.isDir()) {
-        QFileInfoList   entriesList = QDir(info.canonicalFilePath()).entryInfoList(
-            QDir::AllEntries | QDir::NoDotAndDotDot,
-            QDir::Name
-        );
-
-        foreach (const QFileInfo &file, entriesList) {
-            this->crawl(file, depth + 1);
-        }
-    }
-
-    if (depth == 0) {
-        this->endLoading();
-    }
+    this->m_items.append(rootItem);
 }
 
 void    MainWidget::openPath(const QModelIndex &index)
 {
-    QString file(static_cast<QListWidgetItem*>(index.internalPointer())->toolTip());
+    const QString   file(static_cast<QListWidgetItem*>(index.internalPointer())->toolTip());
 
 #ifdef  Q_OS_OSX
     QProcess::startDetached(QStringLiteral("open"), QStringList() << QStringLiteral("-Rn") << file);

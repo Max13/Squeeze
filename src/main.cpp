@@ -14,7 +14,7 @@ int main(int argc, char *argv[])
 
     QStringList args(qApp->arguments());
     int         i = args.indexOf(QStringLiteral("-l"), 1);
-    quint8      maxLength = 250;
+    quint8      maxLength = 255;
     if (i != -1 && args.length() >= i) {
         maxLength = static_cast<quint8>(args.at(i + 1).toUShort());
     }
